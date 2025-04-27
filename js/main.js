@@ -2802,11 +2802,6 @@ function initMaintenance() {
         exportBackupBtn.addEventListener('click', exportBackup);
     }
 
-    const importBackupBtn = document.getElementById('import-backup-btn');
-    if (importBackupBtn) {
-        importBackupBtn.addEventListener('click', importBackup);
-    }
-
     const saveInternalBackupBtn = document.getElementById('save-internal-backup-btn');
     if (saveInternalBackupBtn) {
         saveInternalBackupBtn.addEventListener('click', function() {

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استيراد البيانات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .btn {
+            margin: 10px;
+        }
+        .alert {
+            text-align: right;
+        }
+        #status-container {
+            margin-top: 20px;
+            display: none;
+        }
+        #progress-container {
+            margin: 20px 0;
+        }
+        .step {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: right;
+            background-color: #f8f9fa;
+        }
+        .step.active {
+            background-color: #e2f3ff;
+            border-right: 4px solid #0d6efd;
+        }
+        .step.success {
+            background-color: #d4edda;
+            border-right: 4px solid #198754;
+        }
+        .step.error {
+            background-color: #f8d7da;
+            border-right: 4px solid #dc3545;
+        }
+        .step-icon {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="bi bi-upload me-2"></i>استيراد البيانات</h1>
+        
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>تحذير:</strong> سيؤدي استيراد البيانات إلى استبدال جميع البيانات الحالية في النظام. تأكد من أنك تريد المتابعة.
+        </div>
+        
+        <div id="import-form">
+            <div class="mb-3">
+                <label for="import-file" class="form-label">اختر ملف النسخة الاحتياطية (بتنسيق JSON)</label>
+                <input class="form-control" type="file" id="import-file" accept=".json">
+            </div>
+            
+            <button id="import-btn" class="btn btn-primary"><i class="bi bi-upload me-1"></i>استيراد البيانات</button>
+            <a href="index.html" class="btn btn-secondary"><i class="bi bi-arrow-right me-1"></i>العودة للنظام</a>
+        </div>
+        
+        <div id="status-container" class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>حالة الاستيراد</h5>
+            </div>
+            <div class="card-body">
+                <div id="progress-container">
+                    <div class="step" id="step-1">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>قراءة الملف</span>
+                    </div>
+                    <div class="step" id="step-2">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>تحليل البيانات</span>
+                    </div>
+                    <div class="step" id="step-3">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>التحقق من صحة البيانات</span>
+                    </div>
+                    <div class="step" id="step-4">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>حفظ نسخة احتياطية من البيانات الحالية</span>
+                    </div>
+                    <div class="step" id="step-5">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>استيراد البيانات الجديدة</span>
+                    </div>
+                    <div class="step" id="step-6">
+                        <i class="bi bi-circle step-icon"></i>
+                        <span>تحديث النظام</span>
+                    </div>
+                </div>
+                
+                <div id="result-message" class="alert mt-3" style="display: none;"></div>
+                
+                <div class="mt-3">
+                    <button id="finish-btn" class="btn btn-success" style="display: none;"><i class="bi bi-check-circle me-1"></i>إنهاء وعودة للنظام</button>
+                    <button id="retry-btn" class="btn btn-warning" style="display: none;"><i class="bi bi-arrow-repeat me-1"></i>إعادة المحاولة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تعريف مفاتيح التخزين
+        const STORAGE_KEYS = {
+            EMPLOYEES: 'salary_management_employees',
+            MEMBERS: 'salary_management_members',
+            TRANSACTIONS: 'salary_management_transactions',
+            EXPENSES: 'salary_management_expenses',
+            MEMBER_EXPENSES: 'salary_management_member_expenses',
+            MEMBER_ORDER: 'salary_management_member_order',
+            INTERNAL_BACKUPS: 'salary_management_internal_backups'
+        };
+        
+        // وظائف مساعدة
+        function loadData(key, defaultValue = []) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            } catch (error) {
+                console.error(`خطأ في تحميل البيانات: ${key}`, error);
+                return defaultValue;
+            }
+        }
+        
+        function saveData(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+                return true;
+            } catch (error) {
+                console.error(`خطأ في حفظ البيانات: ${key}`, error);
+                return false;
+            }
+        }
+        
+        // وظيفة لتحديث حالة الخطوات
+        function updateStep(stepNumber, status, message = '') {
+            const step = document.getElementById(`step-${stepNumber}`);
+            const icon = step.querySelector('.step-icon');
+            
+            // إزالة الحالات السابقة
+            step.classList.remove('active', 'success', 'error');
+            
+            // تحديث الأيقونة والحالة
+            if (status === 'active') {
+                step.classList.add('active');
+                icon.className = 'bi bi-arrow-right step-icon';
+            } else if (status === 'success') {
+                step.classList.add('success');
+                icon.className = 'bi bi-check-circle-fill step-icon';
+            } else if (status === 'error') {
+                step.classList.add('error');
+                icon.className = 'bi bi-x-circle-fill step-icon';
+                
+                // إظهار رسالة الخطأ
+                if (message) {
+                    const resultMessage = document.getElementById('result-message');
+                    resultMessage.className = 'alert alert-danger mt-3';
+                    resultMessage.textContent = message;
+                    resultMessage.style.display = 'block';
+                    
+                    // إظهار زر إعادة المحاولة
+                    document.getElementById('retry-btn').style.display = 'inline-block';
+                }
+            }
+        }
+        
+        // وظيفة لحفظ نسخة احتياطية داخلية
+        function saveInternalBackup(name) {
+            try {
+                // جمع البيانات الحالية
+                const backupData = {
+                    employees: loadData(STORAGE_KEYS.EMPLOYEES, []),
+                    members: loadData(STORAGE_KEYS.MEMBERS, []),
+                    transactions: loadData(STORAGE_KEYS.TRANSACTIONS, []),
+                    expenses: loadData(STORAGE_KEYS.EXPENSES, []),
+                    memberExpenses: loadData(STORAGE_KEYS.MEMBER_EXPENSES, []),
+                    memberOrder: loadData(STORAGE_KEYS.MEMBER_ORDER, []),
+                    version: '1.0',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // تحميل النسخ الاحتياطية الحالية
+                let internalBackups = loadData(STORAGE_KEYS.INTERNAL_BACKUPS, []);
+                
+                // إضافة النسخة الجديدة
+                internalBackups.push({
+                    id: Date.now().toString(),
+                    name: name,
+                    timestamp: new Date().toISOString(),
+                    data: backupData
+                });
+                
+                // حفظ النسخ الاحتياطية
+                return saveData(STORAGE_KEYS.INTERNAL_BACKUPS, internalBackups);
+            } catch (error) {
+                console.error('خطأ في حفظ النسخة الاحتياطية الداخلية:', error);
+                return false;
+            }
+        }
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            const importBtn = document.getElementById('import-btn');
+            const importFile = document.getElementById('import-file');
+            const importForm = document.getElementById('import-form');
+            const statusContainer = document.getElementById('status-container');
+            const finishBtn = document.getElementById('finish-btn');
+            const retryBtn = document.getElementById('retry-btn');
+            const resultMessage = document.getElementById('result-message');
+            
+            // وظيفة الاستيراد
+            function importData() {
+                // التحقق من اختيار ملف
+                if (!importFile.files || importFile.files.length === 0) {
+                    alert('الرجاء اختيار ملف النسخة الاحتياطية أولاً');
+                    return;
+                }
+                
+                // إخفاء نموذج الاستيراد وإظهار حالة التقدم
+                importForm.style.display = 'none';
+                statusContainer.style.display = 'block';
+                resultMessage.style.display = 'none';
+                finishBtn.style.display = 'none';
+                retryBtn.style.display = 'none';
+                
+                // إعادة تعيين جميع الخطوات
+                for (let i = 1; i <= 6; i++) {
+                    const step = document.getElementById(`step-${i}`);
+                    const icon = step.querySelector('.step-icon');
+                    step.classList.remove('active', 'success', 'error');
+                    icon.className = 'bi bi-circle step-icon';
+                }
+                
+                // بدء عملية الاستيراد
+                const file = importFile.files[0];
+                
+                // الخطوة 1: قراءة الملف
+                updateStep(1, 'active');
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    try {
+                        updateStep(1, 'success');
+                        
+                        // الخطوة 2: تحليل البيانات
+                        updateStep(2, 'active');
+                        
+                        let backupData;
+                        try {
+                            backupData = JSON.parse(event.target.result);
+                            updateStep(2, 'success');
+                        } catch (parseError) {
+                            console.error('خطأ في تحليل ملف JSON:', parseError);
+                            updateStep(2, 'error', 'الملف المختار ليس بتنسيق JSON صالح. يرجى اختيار ملف نسخة احتياطية صحيح.');
+                            return;
+                        }
+                        
+                        // الخطوة 3: التحقق من صحة البيانات
+                        updateStep(3, 'active');
+                        
+                        if (!backupData.employees || !backupData.members || !backupData.transactions || 
+                            !backupData.expenses || !backupData.memberExpenses) {
+                            
+                            // محاولة التحقق من هيكل بيانات مختلف
+                            if (backupData.error) {
+                                updateStep(3, 'error', 'ملف النسخة الاحتياطية يحتوي على خطأ: ' + backupData.error);
+                                return;
+                            }
+                            
+                            updateStep(3, 'error', 'ملف النسخة الاحتياطية غير صالح أو ناقص. تأكد من اختيار ملف نسخة احتياطية صحيح.');
+                            return;
+                        }
+                        
+                        updateStep(3, 'success');
+                        
+                        // الخطوة 4: حفظ نسخة احتياطية من البيانات الحالية
+                        updateStep(4, 'active');
+                        
+                        const backupSaved = saveInternalBackup('قبل الاستيراد - ' + new Date().toLocaleString('ar-SA'));
+                        
+                        if (!backupSaved) {
+                            updateStep(4, 'error', 'فشل حفظ نسخة احتياطية من البيانات الحالية. هل تريد المتابعة على أي حال؟');
+                            
+                            if (!confirm('فشل حفظ نسخة احتياطية من البيانات الحالية. هل تريد المتابعة على أي حال؟')) {
+                                return;
+                            }
+                        } else {
+                            updateStep(4, 'success');
+                        }
+                        
+                        // الخطوة 5: استيراد البيانات الجديدة
+                        updateStep(5, 'active');
+                        
+                        // حفظ البيانات المستوردة في التخزين المحلي
+                        const savedEmployees = saveData(STORAGE_KEYS.EMPLOYEES, backupData.employees);
+                        const savedMembers = saveData(STORAGE_KEYS.MEMBERS, backupData.members);
+                        const savedTransactions = saveData(STORAGE_KEYS.TRANSACTIONS, backupData.transactions);
+                        const savedExpenses = saveData(STORAGE_KEYS.EXPENSES, backupData.expenses);
+                        const savedMemberExpenses = saveData(STORAGE_KEYS.MEMBER_EXPENSES, backupData.memberExpenses);
+                        const savedMemberOrder = saveData(STORAGE_KEYS.MEMBER_ORDER, backupData.memberOrder || []);
+                        
+                        if (!savedEmployees || !savedMembers || !savedTransactions || 
+                            !savedExpenses || !savedMemberExpenses) {
+                            updateStep(5, 'error', 'فشل حفظ البيانات المستوردة في التخزين المحلي. قد تكون البيانات كبيرة جدًا أو قد تكون هناك مشكلة في المتصفح.');
+                            return;
+                        }
+                        
+                        updateStep(5, 'success');
+                        
+                        // الخطوة 6: تحديث النظام
+                        updateStep(6, 'active');
+                        
+                        // إظهار رسالة النجاح
+                        setTimeout(() => {
+                            updateStep(6, 'success');
+                            
+                            resultMessage.className = 'alert alert-success mt-3';
+                            resultMessage.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>تم استيراد البيانات بنجاح! يمكنك الآن العودة للنظام.';
+                            resultMessage.style.display = 'block';
+                            
+                            finishBtn.style.display = 'inline-block';
+                        }, 500);
+                    } catch (error) {
+                        console.error('خطأ في استيراد البيانات:', error);
+                        
+                        // تحديد الخطوة التي حدث فيها الخطأ
+                        for (let i = 1; i <= 6; i++) {
+                            const step = document.getElementById(`step-${i}`);
+                            if (step.classList.contains('active')) {
+                                updateStep(i, 'error', 'حدث خطأ أثناء استيراد البيانات: ' + error.message);
+                                break;
+                            }
+                        }
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    console.error('خطأ في قراءة الملف:', error);
+                    updateStep(1, 'error', 'حدث خطأ أثناء قراءة الملف. يرجى المحاولة مرة أخرى.');
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // إضافة مستمع الحدث لزر الاستيراد
+            importBtn.addEventListener('click', importData);
+            
+            // إضافة مستمع الحدث لزر الإنهاء
+            finishBtn.addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+            
+            // إضافة مستمع الحدث لزر إعادة المحاولة
+            retryBtn.addEventListener('click', function() {
+                importForm.style.display = 'block';
+                statusContainer.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
