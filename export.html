@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تصدير البيانات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .data-container {
+            text-align: left;
+            direction: ltr;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تصدير البيانات</h1>
+        <p>تم تحميل بيانات النظام بنجاح. يمكنك الآن حفظ هذه البيانات على جهازك.</p>
+
+        <div class="data-container" id="data-display">جاري تحميل البيانات...</div>
+
+        <div>
+            <button class="btn" id="copy-btn">نسخ البيانات</button>
+            <button class="btn" id="download-btn">تنزيل كملف</button>
+            <button class="btn btn-secondary" id="back-btn">العودة للنظام</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // استلام البيانات من localStorage
+            let backupData;
+            try {
+                // تعريف مفاتيح التخزين
+                const STORAGE_KEYS = {
+                    EMPLOYEES: 'salary_management_employees',
+                    MEMBERS: 'salary_management_members',
+                    TRANSACTIONS: 'salary_management_transactions',
+                    EXPENSES: 'salary_management_expenses',
+                    MEMBER_EXPENSES: 'salary_management_member_expenses',
+                    MEMBER_ORDER: 'salary_management_member_order'
+                };
+
+                // قراءة البيانات من التخزين المحلي
+                const employees = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
+                const members = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBERS) || '[]');
+                const transactions = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRANSACTIONS) || '[]');
+                const expenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
+                const memberExpenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBER_EXPENSES) || '[]');
+                const memberOrder = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBER_ORDER) || '[]');
+
+                // إنشاء كائن البيانات
+                backupData = {
+                    employees: employees,
+                    members: members,
+                    transactions: transactions,
+                    expenses: expenses,
+                    memberExpenses: memberExpenses,
+                    memberOrder: memberOrder,
+                    version: '1.0',
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log('تم قراءة البيانات بنجاح');
+            } catch (error) {
+                console.error('خطأ في قراءة البيانات:', error);
+                backupData = { error: 'حدث خطأ في قراءة البيانات: ' + error.message };
+                alert('حدث خطأ في قراءة البيانات: ' + error.message);
+            }
+
+            // عرض البيانات
+            const dataDisplay = document.getElementById('data-display');
+            dataDisplay.textContent = JSON.stringify(backupData, null, 2);
+
+            // زر النسخ
+            document.getElementById('copy-btn').addEventListener('click', function() {
+                try {
+                    const jsonString = JSON.stringify(backupData);
+
+                    // محاولة استخدام واجهة Clipboard API
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(jsonString).then(function() {
+                            alert('تم نسخ البيانات بنجاح!');
+                        }, function(err) {
+                            console.error('خطأ في نسخ البيانات باستخدام Clipboard API:', err);
+                            fallbackCopy();
+                        });
+                    } else {
+                        fallbackCopy();
+                    }
+
+                    // طريقة بديلة للنسخ
+                    function fallbackCopy() {
+                        try {
+                            // إنشاء عنصر نصي مؤقت
+                            const textArea = document.createElement('textarea');
+                            textArea.value = jsonString;
+                            textArea.style.position = 'fixed';
+                            textArea.style.left = '-999999px';
+                            textArea.style.top = '-999999px';
+                            document.body.appendChild(textArea);
+                            textArea.focus();
+                            textArea.select();
+
+                            // محاولة النسخ
+                            const successful = document.execCommand('copy');
+                            document.body.removeChild(textArea);
+
+                            if (successful) {
+                                alert('تم نسخ البيانات بنجاح!');
+                            } else {
+                                alert('فشل نسخ البيانات. يرجى تحديد النص ونسخه يدويًا.');
+                            }
+                        } catch (err) {
+                            console.error('خطأ في النسخ البديل:', err);
+                            alert('فشل نسخ البيانات. يرجى تحديد النص ونسخه يدويًا.');
+                        }
+                    }
+                } catch (error) {
+                    console.error('خطأ في نسخ البيانات:', error);
+                    alert('حدث خطأ أثناء نسخ البيانات: ' + error.message);
+                }
+            });
+
+            // زر التنزيل
+            document.getElementById('download-btn').addEventListener('click', function() {
+                try {
+                    alert('جاري تحضير الملف للتنزيل...');
+
+                    const jsonString = JSON.stringify(backupData);
+                    const fileName = `salary_system_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+                    // الطريقة 1: استخدام Blob و URL.createObjectURL
+                    try {
+                        const blob = new Blob([jsonString], {type: 'application/json'});
+                        const url = URL.createObjectURL(blob);
+
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+
+                        // تأخير قليل قبل النقر
+                        setTimeout(() => {
+                            a.click();
+
+                            // تأخير إزالة العنصر وتحرير الموارد
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                alert('تم بدء تنزيل الملف. تحقق من مجلد التنزيلات في جهازك.');
+                            }, 100);
+                        }, 100);
+
+                        return;
+                    } catch (blobError) {
+                        console.error('فشلت الطريقة الأولى للتنزيل:', blobError);
+                        // سنستمر بالطريقة البديلة
+                    }
+
+                    // الطريقة 2: استخدام data URI
+                    try {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonString);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = dataStr;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+
+                        alert('تم بدء تنزيل الملف. تحقق من مجلد التنزيلات في جهازك.');
+                        return;
+                    } catch (dataUriError) {
+                        console.error('فشلت الطريقة الثانية للتنزيل:', dataUriError);
+                        alert('فشل تنزيل الملف. يرجى استخدام زر النسخ ثم حفظ البيانات في ملف نصي بامتداد .json');
+                    }
+                } catch (error) {
+                    console.error('خطأ في تنزيل البيانات:', error);
+                    alert('حدث خطأ أثناء تنزيل البيانات: ' + error.message);
+                }
+            });
+
+            // زر العودة
+            document.getElementById('back-btn').addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+        });
+    </script>
+</body>
+</html>

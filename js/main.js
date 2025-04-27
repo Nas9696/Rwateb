@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // تهيئة قسم التقارير
     initReports();
+
+    // تهيئة قسم الصيانة
+    initMaintenance();
 });
 
 // Function to display alerts
@@ -162,12 +165,36 @@ const STORAGE_KEYS = {
 
 function saveData(key, data) {
     try {
-        localStorage.setItem(key, JSON.stringify(data));
+        console.log(`محاولة حفظ البيانات: ${key}`);
+
+        // التحقق من البيانات
+        if (data === undefined || data === null) {
+            console.warn(`البيانات غير صالحة لـ ${key}`);
+            data = Array.isArray(data) ? [] : {};
+        }
+
+        // تحويل البيانات إلى JSON
+        const jsonData = JSON.stringify(data);
+
+        // التحقق من حجم البيانات
+        const dataSize = new Blob([jsonData]).size;
+        console.log(`حجم البيانات لـ ${key}: ${(dataSize / 1024).toFixed(2)} كيلوبايت`);
+
+        // حفظ البيانات
+        localStorage.setItem(key, jsonData);
         console.log(`تم حفظ البيانات بنجاح: ${key}`);
         return true;
     } catch (error) {
         console.error(`خطأ في حفظ البيانات: ${key}`, error);
-        showAlert('danger', 'حدث خطأ في حفظ البيانات');
+
+        // محاولة تحديد نوع الخطأ
+        if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+            console.warn('تم تجاوز الحد الأقصى لمساحة التخزين المحلي');
+            showAlert('danger', 'تم تجاوز الحد الأقصى لمساحة التخزين المحلي. حاول حذف بعض البيانات القديمة.');
+        } else {
+            showAlert('danger', 'حدث خطأ في حفظ البيانات');
+        }
+
         return false;
     }
 }
@@ -2756,5 +2783,544 @@ function saveQuickDeposit() {
         } catch (error) {
             console.error('حدث خطأ أثناء تحديث واجهة المستخدم:', error);
         }
+    }
+}
+
+// ===== قسم الصيانة والنسخ الاحتياطية =====
+
+// مفتاح تخزين النسخ الاحتياطية الداخلية
+const INTERNAL_BACKUPS_KEY = 'salary_management_internal_backups';
+
+// تهيئة قسم الصيانة
+function initMaintenance() {
+    // تحميل النسخ الاحتياطية الداخلية
+    loadInternalBackups();
+
+    // إضافة مستمعي الأحداث للأزرار
+    const exportBackupBtn = document.getElementById('export-backup-btn');
+    if (exportBackupBtn) {
+        exportBackupBtn.addEventListener('click', exportBackup);
+    }
+
+    const importBackupBtn = document.getElementById('import-backup-btn');
+    if (importBackupBtn) {
+        importBackupBtn.addEventListener('click', importBackup);
+    }
+
+    const saveInternalBackupBtn = document.getElementById('save-internal-backup-btn');
+    if (saveInternalBackupBtn) {
+        saveInternalBackupBtn.addEventListener('click', function() {
+            saveInternalBackup();
+        });
+    }
+
+    // إعداد النسخ الاحتياطية التلقائية
+    setupAutoBackup();
+}
+
+// إعداد النسخ الاحتياطية التلقائية
+function setupAutoBackup() {
+    // التحقق من آخر نسخة احتياطية تلقائية
+    const lastAutoBackupTime = localStorage.getItem('last_auto_backup_time');
+    const now = new Date();
+
+    // إذا لم يتم عمل نسخة احتياطية من قبل أو مر أكثر من يوم منذ آخر نسخة
+    if (!lastAutoBackupTime || (now - new Date(lastAutoBackupTime)) > (24 * 60 * 60 * 1000)) {
+        console.log('جاري إنشاء نسخة احتياطية تلقائية...');
+
+        // إنشاء نسخة احتياطية تلقائية
+        const success = saveInternalBackup('نسخة تلقائية - ' + now.toLocaleString('ar-SA'), true);
+
+        if (success) {
+            // تحديث وقت آخر نسخة احتياطية
+            localStorage.setItem('last_auto_backup_time', now.toISOString());
+            console.log('تم إنشاء نسخة احتياطية تلقائية بنجاح');
+        }
+    }
+
+    // الحفاظ على عدد محدود من النسخ الاحتياطية التلقائية (الاحتفاظ بآخر 5 نسخ فقط)
+    try {
+        const internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+        const autoBackups = internalBackups.filter(b => b.name && b.name.includes('نسخة تلقائية'));
+
+        if (autoBackups.length > 5) {
+            console.log('تقليص عدد النسخ الاحتياطية التلقائية...');
+
+            // ترتيب النسخ التلقائية من الأقدم إلى الأحدث
+            autoBackups.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // حذف النسخ القديمة
+            const backupsToDelete = autoBackups.slice(0, autoBackups.length - 5);
+            let updatedBackups = [...internalBackups];
+
+            backupsToDelete.forEach(backup => {
+                updatedBackups = updatedBackups.filter(b => b.id !== backup.id);
+            });
+
+            // حفظ القائمة المحدثة
+            saveData(INTERNAL_BACKUPS_KEY, updatedBackups);
+            loadInternalBackups(); // تحديث العرض
+
+            console.log(`تم حذف ${backupsToDelete.length} نسخة احتياطية قديمة`);
+        }
+    } catch (error) {
+        console.error('خطأ في إدارة النسخ الاحتياطية التلقائية:', error);
+    }
+}
+
+// تصدير نسخة احتياطية كملف JSON
+function exportBackup() {
+    try {
+        // إظهار رسالة للمستخدم
+        alert('جاري تصدير البيانات، يرجى الانتظار...');
+
+        // فتح صفحة التصدير في نافذة جديدة
+        window.open('export.html', '_blank');
+
+        // إظهار رسالة نجاح
+        setTimeout(() => {
+            showAlert('success', 'تم فتح صفحة التصدير. اتبع التعليمات لحفظ البيانات.');
+        }, 500);
+
+        return true;
+    } catch (error) {
+        console.error('خطأ في فتح صفحة التصدير:', error);
+        alert('حدث خطأ أثناء فتح صفحة التصدير. يرجى المحاولة مرة أخرى.');
+        showAlert('danger', 'حدث خطأ أثناء فتح صفحة التصدير');
+        return false;
+    }
+}
+
+// استيراد نسخة احتياطية من ملف JSON
+function importBackup() {
+    try {
+        const fileInput = document.getElementById('import-backup-file');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            alert('الرجاء اختيار ملف النسخة الاحتياطية أولاً');
+            showAlert('warning', 'الرجاء اختيار ملف النسخة الاحتياطية أولاً');
+            return;
+        }
+
+        // التأكيد قبل الاستيراد
+        if (!confirm('سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. هل أنت متأكد من المتابعة؟')) {
+            return;
+        }
+
+        // إظهار رسالة للمستخدم
+        alert('جاري استيراد البيانات، يرجى الانتظار...');
+        console.log('بدء عملية استيراد البيانات...');
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+            try {
+                console.log('تم قراءة الملف بنجاح، جاري تحليل البيانات...');
+                const jsonData = event.target.result;
+                let backupData;
+
+                try {
+                    backupData = JSON.parse(jsonData);
+                } catch (parseError) {
+                    console.error('خطأ في تحليل ملف JSON:', parseError);
+                    alert('الملف المختار ليس بتنسيق JSON صالح. يرجى اختيار ملف نسخة احتياطية صحيح.');
+                    showAlert('danger', 'الملف المختار ليس بتنسيق JSON صالح');
+                    return;
+                }
+
+                // التحقق من صحة البيانات
+                if (!backupData.employees || !backupData.members || !backupData.transactions ||
+                    !backupData.expenses || !backupData.memberExpenses) {
+
+                    // محاولة التحقق من هيكل بيانات مختلف (قد يكون من صفحة التصدير الجديدة)
+                    if (backupData.error) {
+                        throw new Error('ملف النسخة الاحتياطية يحتوي على خطأ: ' + backupData.error);
+                    }
+
+                    throw new Error('ملف النسخة الاحتياطية غير صالح أو ناقص');
+                }
+
+                console.log('تم التحقق من صحة البيانات، جاري حفظ نسخة احتياطية قبل الاستيراد...');
+
+                // حفظ نسخة احتياطية داخلية قبل الاستيراد (للأمان)
+                saveInternalBackup('قبل الاستيراد - ' + new Date().toLocaleString('ar-SA'), true);
+
+                console.log('جاري استبدال البيانات الحالية بالبيانات المستوردة...');
+
+                // استبدال البيانات الحالية بالبيانات المستوردة
+                employees = backupData.employees;
+                members = backupData.members;
+                transactions = backupData.transactions;
+                expenses = backupData.expenses;
+                memberExpenses = backupData.memberExpenses;
+                memberOrder = backupData.memberOrder || [];
+
+                console.log('جاري حفظ البيانات المستوردة في التخزين المحلي...');
+
+                // حفظ البيانات المستوردة في التخزين المحلي
+                const savedEmployees = saveData(STORAGE_KEYS.EMPLOYEES, employees);
+                const savedMembers = saveData(STORAGE_KEYS.MEMBERS, members);
+                const savedTransactions = saveData(STORAGE_KEYS.TRANSACTIONS, transactions);
+                const savedExpenses = saveData(STORAGE_KEYS.EXPENSES, expenses);
+                const savedMemberExpenses = saveData(STORAGE_KEYS.MEMBER_EXPENSES, memberExpenses);
+                const savedMemberOrder = saveData(STORAGE_KEYS.MEMBER_ORDER, memberOrder);
+
+                if (!savedEmployees || !savedMembers || !savedTransactions ||
+                    !savedExpenses || !savedMemberExpenses || !savedMemberOrder) {
+                    throw new Error('فشل حفظ البيانات المستوردة في التخزين المحلي');
+                }
+
+                console.log('تم حفظ البيانات بنجاح، جاري تحديث واجهة المستخدم...');
+
+                // تحديث واجهة المستخدم
+                loadAllData();
+
+                // إعادة تعيين حقل الملف
+                fileInput.value = '';
+
+                console.log('تم استيراد البيانات بنجاح');
+                alert('تم استيراد النسخة الاحتياطية بنجاح');
+                showAlert('success', 'تم استيراد النسخة الاحتياطية بنجاح');
+            } catch (error) {
+                console.error('خطأ في استيراد النسخة الاحتياطية:', error);
+                alert('حدث خطأ أثناء استيراد النسخة الاحتياطية: ' + error.message);
+                showAlert('danger', 'حدث خطأ أثناء استيراد النسخة الاحتياطية: ' + error.message);
+            }
+        };
+
+        reader.onerror = function(error) {
+            console.error('خطأ في قراءة الملف:', error);
+            alert('حدث خطأ أثناء قراءة الملف');
+            showAlert('danger', 'حدث خطأ أثناء قراءة الملف');
+        };
+
+        console.log('جاري قراءة الملف...');
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('خطأ في وظيفة استيراد البيانات:', error);
+        alert('حدث خطأ أثناء استيراد البيانات: ' + error.message);
+        showAlert('danger', 'حدث خطأ أثناء استيراد البيانات: ' + error.message);
+    }
+}
+
+// حفظ نسخة احتياطية داخلية
+function saveInternalBackup(customName = '', silent = false) {
+    try {
+        if (!silent) {
+            alert('جاري حفظ النسخة الاحتياطية الداخلية...');
+        }
+        console.log('بدء عملية حفظ النسخة الاحتياطية الداخلية...');
+
+        // جمع البيانات
+        const backupData = {
+            employees: employees || [],
+            members: members || [],
+            transactions: transactions || [],
+            expenses: expenses || [],
+            memberExpenses: memberExpenses || [],
+            memberOrder: memberOrder || [],
+            version: '1.0',
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('تم تجميع البيانات للنسخة الاحتياطية');
+
+        // تحديد اسم النسخة الاحتياطية
+        let backupName = customName;
+        if (!backupName && !silent) {
+            const nameInput = document.getElementById('internal-backup-name');
+            backupName = nameInput ? nameInput.value.trim() : '';
+        }
+
+        if (!backupName) {
+            // استخدام التاريخ والوقت كاسم افتراضي
+            const now = new Date();
+            backupName = 'نسخة احتياطية - ' + now.toLocaleString('ar-SA');
+        }
+
+        console.log('اسم النسخة الاحتياطية:', backupName);
+
+        // تحميل النسخ الاحتياطية الحالية
+        let internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+        console.log('تم تحميل النسخ الاحتياطية الحالية، العدد:', internalBackups.length);
+
+        // إنشاء كائن النسخة الاحتياطية الجديدة
+        const newBackup = {
+            id: Date.now().toString(),
+            name: backupName,
+            timestamp: new Date().toISOString(),
+            data: backupData
+        };
+
+        // إضافة النسخة الجديدة
+        internalBackups.push(newBackup);
+        console.log('تمت إضافة النسخة الجديدة');
+
+        // حفظ النسخ الاحتياطية - تقسيم البيانات إذا كانت كبيرة جدًا
+        try {
+            // محاولة حفظ البيانات مباشرة
+            const saved = saveData(INTERNAL_BACKUPS_KEY, internalBackups);
+            if (!saved) {
+                throw new Error('فشل حفظ البيانات');
+            }
+            console.log('تم حفظ النسخ الاحتياطية بنجاح');
+        } catch (storageError) {
+            console.warn('حدث خطأ أثناء حفظ النسخ الاحتياطية، محاولة الحفظ بطريقة بديلة:', storageError);
+
+            // إذا كان هناك الكثير من النسخ الاحتياطية، احتفظ فقط بأحدث 3 نسخ
+            if (internalBackups.length > 3) {
+                internalBackups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                internalBackups = internalBackups.slice(0, 3);
+                console.log('تم تقليص عدد النسخ الاحتياطية إلى 3');
+
+                // محاولة الحفظ مرة أخرى
+                const saved = saveData(INTERNAL_BACKUPS_KEY, internalBackups);
+                if (!saved) {
+                    // محاولة أخيرة: احتفظ فقط بالنسخة الجديدة
+                    internalBackups = [newBackup];
+                    const lastTry = saveData(INTERNAL_BACKUPS_KEY, internalBackups);
+                    if (!lastTry) {
+                        throw new Error('فشل حفظ البيانات حتى بعد التقليص');
+                    }
+                }
+            } else {
+                // محاولة حفظ النسخة الجديدة فقط
+                internalBackups = [newBackup];
+                const lastTry = saveData(INTERNAL_BACKUPS_KEY, internalBackups);
+                if (!lastTry) {
+                    throw new Error('فشل حفظ النسخة الاحتياطية الجديدة');
+                }
+            }
+        }
+
+        // تحديث قائمة النسخ الاحتياطية
+        loadInternalBackups();
+        console.log('تم تحديث قائمة النسخ الاحتياطية');
+
+        // إعادة تعيين حقل الاسم
+        if (!silent) {
+            const nameInput = document.getElementById('internal-backup-name');
+            if (nameInput) {
+                nameInput.value = '';
+            }
+            alert('تم حفظ النسخة الاحتياطية الداخلية بنجاح.\nملاحظة: النسخ الاحتياطية الداخلية تُحفظ في متصفح الإنترنت وليس كملفات في مجلد التطبيق.');
+            showAlert('success', 'تم حفظ النسخة الاحتياطية الداخلية بنجاح');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('خطأ في حفظ النسخة الاحتياطية الداخلية:', error);
+        if (!silent) {
+            alert('حدث خطأ أثناء حفظ النسخة الاحتياطية الداخلية: ' + error.message + '\nحاول تصدير البيانات بدلاً من ذلك لحفظها كملف على جهازك.');
+            showAlert('danger', 'حدث خطأ أثناء حفظ النسخة الاحتياطية الداخلية: ' + error.message);
+        }
+        return false;
+    }
+}
+
+// تحميل النسخ الاحتياطية الداخلية وعرضها
+function loadInternalBackups() {
+    console.log('بدء تحميل النسخ الاحتياطية الداخلية...');
+
+    const backupsList = document.getElementById('internal-backups-list');
+    const noBackupsMessage = document.getElementById('no-backups-message');
+
+    if (!backupsList || !noBackupsMessage) {
+        console.warn('لم يتم العثور على عناصر واجهة المستخدم اللازمة');
+        return;
+    }
+
+    try {
+        // تحميل النسخ الاحتياطية
+        const internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+        console.log('تم تحميل النسخ الاحتياطية، العدد:', internalBackups.length);
+
+        // عرض أو إخفاء رسالة "لا توجد نسخ احتياطية"
+        if (!internalBackups || internalBackups.length === 0) {
+            backupsList.innerHTML = '';
+            noBackupsMessage.style.display = 'block';
+            console.log('لا توجد نسخ احتياطية للعرض');
+            return;
+        }
+
+        noBackupsMessage.style.display = 'none';
+        backupsList.innerHTML = '';
+
+        // ترتيب النسخ الاحتياطية من الأحدث إلى الأقدم
+        const sortedBackups = [...internalBackups].sort((a, b) => {
+            try {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            } catch (e) {
+                return 0; // في حالة وجود خطأ في التاريخ
+            }
+        });
+
+        console.log('تم ترتيب النسخ الاحتياطية');
+
+        // إنشاء صفوف الجدول
+        sortedBackups.forEach((backup, index) => {
+            try {
+                const row = document.createElement('tr');
+
+                // تنسيق التاريخ
+                let formattedDate = '';
+                try {
+                    const date = new Date(backup.timestamp);
+                    formattedDate = date.toLocaleString('ar-SA');
+                } catch (dateError) {
+                    console.warn('خطأ في تنسيق التاريخ:', dateError);
+                    formattedDate = 'غير معروف';
+                }
+
+                // التأكد من وجود معرف للنسخة الاحتياطية
+                const backupId = backup.id || Date.now().toString() + index;
+
+                row.innerHTML = `
+                    <td>${backup.name || 'نسخة احتياطية'}</td>
+                    <td>${formattedDate}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success me-1" title="استعادة" onclick="restoreInternalBackup('${backupId}')">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary me-1" title="تصدير" onclick="exportInternalBackup('${backupId}')">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" title="حذف" onclick="deleteInternalBackup('${backupId}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+                backupsList.appendChild(row);
+            } catch (rowError) {
+                console.error('خطأ في إنشاء صف للنسخة الاحتياطية:', rowError);
+            }
+        });
+
+        console.log('تم عرض النسخ الاحتياطية بنجاح');
+    } catch (error) {
+        console.error('خطأ في تحميل وعرض النسخ الاحتياطية:', error);
+        backupsList.innerHTML = '<tr><td colspan="3" class="text-center text-danger">حدث خطأ أثناء تحميل النسخ الاحتياطية</td></tr>';
+        noBackupsMessage.style.display = 'none';
+    }
+}
+
+// استعادة نسخة احتياطية داخلية
+function restoreInternalBackup(backupId) {
+    // التأكيد قبل الاستعادة
+    if (!confirm('سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. هل أنت متأكد من المتابعة؟')) {
+        return;
+    }
+
+    try {
+        // تحميل النسخ الاحتياطية
+        const internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+
+        // البحث عن النسخة المطلوبة
+        const backup = internalBackups.find(b => b.id === backupId);
+        if (!backup) {
+            showAlert('danger', 'لم يتم العثور على النسخة الاحتياطية');
+            return;
+        }
+
+        // حفظ نسخة احتياطية من الحالة الحالية قبل الاستعادة
+        saveInternalBackup('قبل الاستعادة - ' + new Date().toLocaleString('ar-SA'), true);
+
+        // استعادة البيانات
+        const backupData = backup.data;
+
+        employees = backupData.employees;
+        members = backupData.members;
+        transactions = backupData.transactions;
+        expenses = backupData.expenses;
+        memberExpenses = backupData.memberExpenses;
+        memberOrder = backupData.memberOrder || [];
+
+        // حفظ البيانات المستعادة في التخزين المحلي
+        saveData(STORAGE_KEYS.EMPLOYEES, employees);
+        saveData(STORAGE_KEYS.MEMBERS, members);
+        saveData(STORAGE_KEYS.TRANSACTIONS, transactions);
+        saveData(STORAGE_KEYS.EXPENSES, expenses);
+        saveData(STORAGE_KEYS.MEMBER_EXPENSES, memberExpenses);
+        saveData(STORAGE_KEYS.MEMBER_ORDER, memberOrder);
+
+        // تحديث واجهة المستخدم
+        loadAllData();
+
+        showAlert('success', 'تم استعادة النسخة الاحتياطية بنجاح');
+    } catch (error) {
+        console.error('خطأ في استعادة النسخة الاحتياطية:', error);
+        showAlert('danger', 'حدث خطأ أثناء استعادة النسخة الاحتياطية');
+    }
+}
+
+// تصدير نسخة احتياطية داخلية كملف
+function exportInternalBackup(backupId) {
+    try {
+        // تحميل النسخ الاحتياطية
+        const internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+
+        // البحث عن النسخة المطلوبة
+        const backup = internalBackups.find(b => b.id === backupId);
+        if (!backup) {
+            showAlert('danger', 'لم يتم العثور على النسخة الاحتياطية');
+            return;
+        }
+
+        // تحويل البيانات إلى سلسلة JSON
+        const jsonData = JSON.stringify(backup.data, null, 2);
+
+        // إنشاء ملف للتنزيل
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        // إنشاء رابط وهمي للتنزيل
+        const a = document.createElement('a');
+        a.href = url;
+
+        // تحديد اسم الملف
+        const dateStr = new Date(backup.timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
+        const safeName = backup.name.replace(/[^\w\s]/gi, '_'); // استبدال الأحرف غير الآمنة
+        a.download = `salary_system_backup_${safeName}_${dateStr}.json`;
+
+        // إضافة الرابط إلى المستند والنقر عليه ثم إزالته
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // تحرير الموارد
+        URL.revokeObjectURL(url);
+
+        showAlert('success', 'تم تصدير النسخة الاحتياطية بنجاح');
+    } catch (error) {
+        console.error('خطأ في تصدير النسخة الاحتياطية:', error);
+        showAlert('danger', 'حدث خطأ أثناء تصدير النسخة الاحتياطية');
+    }
+}
+
+// حذف نسخة احتياطية داخلية
+function deleteInternalBackup(backupId) {
+    // التأكيد قبل الحذف
+    if (!confirm('هل أنت متأكد من حذف هذه النسخة الاحتياطية؟')) {
+        return;
+    }
+
+    try {
+        // تحميل النسخ الاحتياطية
+        let internalBackups = loadData(INTERNAL_BACKUPS_KEY, []);
+
+        // حذف النسخة المطلوبة
+        internalBackups = internalBackups.filter(b => b.id !== backupId);
+
+        // حفظ النسخ الاحتياطية المتبقية
+        saveData(INTERNAL_BACKUPS_KEY, internalBackups);
+
+        // تحديث قائمة النسخ الاحتياطية
+        loadInternalBackups();
+
+        showAlert('success', 'تم حذف النسخة الاحتياطية بنجاح');
+    } catch (error) {
+        console.error('خطأ في حذف النسخة الاحتياطية:', error);
+        showAlert('danger', 'حدث خطأ أثناء حذف النسخة الاحتياطية');
     }
 }
