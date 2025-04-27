@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة رواتب العمالة</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="main-header py-3 mb-4 shadow-sm"> <!-- Restored original header style -->
+        <div class="container-fluid text-center">
+            <h1 class="h3 mb-2 text-white"><i class="bi bi-calculator-fill me-2"></i>نظام إدارة رواتب العمالة</h1>
+             <div id="date-display-header" class="date-display small text-white-50"> <!-- Date back in center -->
+                 <span id="gregorian-date"></span> | <span id="hijri-date"></span>
+             </div>
+        </div>
+    </header>
+
+    <div class="container-fluid">
+         <!-- Alert Placeholder -->
+         <div id="alertPlaceholder"></div>
+
+         <!-- Dashboard Summary -->
+         <div class="row g-3 mb-4" id="dashboard-summary">
+             <div class="col-md-6 col-lg">
+                 <div class="summary-card card shadow-sm border-0 rounded-4 h-100">
+                     <div class="card-body bg-gradient-success text-white rounded-4">
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <h6 class="card-title mb-2 fw-bold"><i class="bi bi-arrow-down-circle-fill me-2"></i>إجمالي الإيرادات</h6>
+                                 <p class="card-text h3 mb-0 arabic-numbers fw-bold" id="summary-income">0 ريال</p>
+                             </div>
+                             <div class="summary-icon-container bg-white bg-opacity-25 rounded-circle">
+                                <i class="bi bi-cash-stack text-white"></i>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-6 col-lg">
+                 <div class="summary-card card shadow-sm border-0 rounded-4 h-100">
+                     <div class="card-body bg-gradient-danger text-white rounded-4">
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <h6 class="card-title mb-2 fw-bold"><i class="bi bi-cart-dash-fill me-2"></i>المصروفات العامة</h6>
+                                 <p class="card-text h3 mb-0 arabic-numbers fw-bold" id="summary-general-expenses">0 ريال</p>
+                             </div>
+                             <div class="summary-icon-container bg-white bg-opacity-25 rounded-circle">
+                                <i class="bi bi-receipt text-white"></i>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-6 col-lg">
+                 <div class="summary-card card shadow-sm border-0 rounded-4 h-100">
+                     <div class="card-body bg-gradient-info text-white rounded-4">
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <h6 class="card-title mb-2 fw-bold"><i class="bi bi-cash-coin me-2"></i>مصروفات الرواتب</h6>
+                                 <p class="card-text h3 mb-0 arabic-numbers fw-bold" id="summary-salary-expenses">0 ريال</p>
+                             </div>
+                             <div class="summary-icon-container bg-white bg-opacity-25 rounded-circle">
+                                <i class="bi bi-person-workspace text-white"></i>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-6 col-lg">
+                 <div class="summary-card card shadow-sm border-0 rounded-4 h-100">
+                     <div class="card-body bg-gradient-warning text-white rounded-4">
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <h6 class="card-title mb-2 fw-bold"><i class="bi bi-dash-circle-fill me-2"></i>المصروفات الخاصة</h6>
+                                 <p class="card-text h3 mb-0 arabic-numbers fw-bold" id="summary-member-expenses">0 ريال</p>
+                             </div>
+                             <div class="summary-icon-container bg-white bg-opacity-25 rounded-circle">
+                                <i class="bi bi-person-lines-fill text-white"></i>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-12 col-lg">
+                 <div class="summary-card card shadow-sm border-0 rounded-4 h-100">
+                     <div class="card-body bg-gradient-primary text-white rounded-4">
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <h6 class="card-title mb-2 fw-bold"><i class="bi bi-wallet2 me-2"></i>الرصيد العام</h6>
+                                 <p class="card-text h3 mb-0 arabic-numbers fw-bold" id="summary-balance">0 ريال</p>
+                             </div>
+                             <div class="summary-icon-container bg-white bg-opacity-25 rounded-circle">
+                                <i class="bi bi-bank text-white"></i>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+         <!-- End Dashboard Summary -->
+
+
+        <nav>
+            <!-- Restored Main Tabs -->
+            <div class="nav nav-tabs main-tabs" id="nav-tab" role="tablist">
+                <button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="true"><i class="bi bi-people-fill me-1"></i>بيانات العمالة</button>
+                <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button" role="tab" aria-controls="members" aria-selected="false"><i class="bi bi-person-badge me-1"></i>الأعضاء المشاركين</button>
+                <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab" aria-controls="expenses" aria-selected="false"><i class="bi bi-receipt me-1"></i>المصروفات العامة</button>
+                <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false"><i class="bi bi-file-earmark-bar-graph me-1"></i>التقارير</button>
+            </div>
+        </nav>
+
+        <div class="tab-content mt-3" id="nav-tabContent">
+            <!-- بيانات العمالة (Restored to Tab) -->
+            <div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+                 <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3><i class="bi bi-person-plus-fill me-2"></i>تسجيل / تعديل بيانات العامل</h3>
+                            <button class="btn btn-sm btn-outline-primary toggle-form-btn" type="button" data-bs-toggle="collapse" data-bs-target="#employeeFormCollapse" aria-expanded="true" aria-controls="employeeFormCollapse">
+                                <i class="bi bi-chevron-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="collapse show" id="employeeFormCollapse">
+                        <div class="card-body">
+                            <form id="employee-form"> <!-- Original ID -->
+                                <input type="hidden" name="id" id="employee-id"> <!-- Original ID -->
+                                <div class="row">
+                                 <div class="col-md-4 mb-3">
+                                    <label for="name" class="form-label">اسم العامل</label>
+                                    <input type="text" class="form-control form-control-sm" id="name" name="name" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="workType" class="form-label">نوع العمل (اكتب "منزلي")</label>
+                                    <input type="text" class="form-control form-control-sm" id="workType" name="workType" placeholder="مثال: عامل منزلي, سائق, ...">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="salary" class="form-label">الراتب</label>
+                                    <input type="number" class="form-control form-control-sm" id="salary" name="salary" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="passportNumber" class="form-label">رقم الجواز</label>
+                                    <input type="text" class="form-control form-control-sm" id="passportNumber" name="passportNumber">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="passportExpiry" class="form-label">تاريخ انتهاء الجواز</label>
+                                    <input type="date" class="form-control form-control-sm" id="passportExpiry" name="passportExpiry">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="iqamaNumber" class="form-label">رقم الإقامة</label>
+                                    <input type="text" class="form-control form-control-sm" id="iqamaNumber" name="iqamaNumber">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="iqamaExpiry" class="form-label">تاريخ انتهاء الإقامة</label>
+                                    <input type="date" class="form-control form-control-sm" id="iqamaExpiry" name="iqamaExpiry">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="phone" class="form-label">رقم الجوال</label>
+                                    <input type="tel" class="form-control form-control-sm" id="phone" name="phone">
+                                </div>
+                                <div class="col-md-8 mb-3">
+                                    <label for="homeAddress" class="form-label">عنوان السكن</label>
+                                    <input type="text" class="form-control form-control-sm" id="homeAddress" name="homeAddress">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="relativeName" class="form-label">اسم القريب</label>
+                                    <input type="text" class="form-control form-control-sm" id="relativeName" name="relativeName">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="relativeAccount" class="form-label">حساب القريب</label>
+                                    <input type="text" class="form-control form-control-sm" id="relativeAccount" name="relativeAccount">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="serviceStartDate" class="form-label">تاريخ بداية الخدمة</label>
+                                    <input type="date" class="form-control form-control-sm" id="serviceStartDate" name="serviceStartDate">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                     <label for="serviceDurationValue" class="form-label">مدة الخدمة</label>
+                                     <input type="number" class="form-control form-control-sm" id="serviceDurationValue" name="serviceDurationValue" min="1" step="1">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                     <label for="serviceDurationUnit" class="form-label">الوحدة</label>
+                                     <select class="form-select form-select-sm" id="serviceDurationUnit" name="serviceDurationUnit">
+                                         <option value="years">سنوات</option>
+                                         <option value="months">أشهر</option>
+                                     </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save-fill me-1"></i>حفظ البيانات</button>
+                            <button type="reset" class="btn btn-secondary btn-sm"><i class="bi bi-x-lg me-1"></i>إلغاء</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-list-ul me-2"></i>قائمة العمالة</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th>نوع العمل</th>
+                                        <th>رقم الجواز</th>
+                                        <th>رقم الإقامة</th>
+                                        <th class="arabic-numbers">الراتب</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employees-list"> <!-- Original ID -->
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الأعضاء المشاركين (مع تبويبات فرعية) -->
+            <div class="tab-pane fade" id="members" role="tabpanel" aria-labelledby="members-tab">
+                 <div class="card">
+                     <div class="card-header">
+                        <ul class="nav nav-pills card-header-pills" id="members-sub-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="member-list-subtab" data-bs-toggle="pill" data-bs-target="#member-list-content" type="button" role="tab" aria-controls="member-list-content" aria-selected="true"><i class="bi bi-list-ul me-1"></i>قائمة الأعضاء</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="add-member-subtab" data-bs-toggle="pill" data-bs-target="#add-member-content" type="button" role="tab" aria-controls="add-member-content" aria-selected="false"><i class="bi bi-person-plus-fill me-1"></i>تسجيل عضو</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="deposit-subtab" data-bs-toggle="pill" data-bs-target="#deposit-content" type="button" role="tab" aria-controls="deposit-content" aria-selected="false"><i class="bi bi-cash-stack me-1"></i>ايداعات الأعضاء</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="member-expense-subtab" data-bs-toggle="pill" data-bs-target="#member-expense-content" type="button" role="tab" aria-controls="member-expense-content" aria-selected="false"><i class="bi bi-dash-circle-fill me-1"></i>مصروفات الأعضاء</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="members-sub-tabsContent">
+                            <!-- قائمة الأعضاء -->
+                            <div class="tab-pane fade show active" id="member-list-content" role="tabpanel" aria-labelledby="member-list-subtab">
+                                <h3>قائمة الأعضاء</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>اسم العضو</th>
+                                                <th>الاشتراك الشهري (المطبق)</th>
+                                                <th>الرصيد</th>
+                                                <th>الحالة</th>
+                                                <th>ترتيب</th>
+                                                <th>إجراءات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="members-list">
+                                            <!-- Populated by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- تسجيل عضو -->
+                            <div class="tab-pane fade" id="add-member-content" role="tabpanel" aria-labelledby="add-member-subtab">
+                                <h3>تسجيل / تعديل عضو مشارك</h3>
+                                <form id="member-form">
+                                     <input type="hidden" id="member-edit-id">
+                                    <div class="row">
+                                        <div class="col-md-5 mb-3">
+                                            <label for="memberName" class="form-label">اسم العضو</label>
+                                            <input type="text" class="form-control" id="memberName" name="memberName" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="monthlyContribution" class="form-label">الاشتراك الشهري (0 = آلي)</label>
+                                            <input type="number" step="0.01" class="form-control" id="monthlyContribution" name="monthlyContribution" placeholder="0 (اتركه 0 للحساب الآلي)">
+                                            <div class="form-text">
+                                                أدخل مبلغًا لتجاوز الحساب الآلي. سيتم تقريب الآلي لأعلى.
+                                            </div>
+                                        </div>
+                                         <div class="col-md-3 mb-3">
+                                            <label for="previousBalance" class="form-label">رصيد سابق</label>
+                                            <input type="number" step="0.01" class="form-control" id="previousBalance" name="previousBalance" placeholder="0">
+                                            <div class="form-text">
+                                                رصيد مرحل (إيجابي أو سلبي).
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="memberStatus" name="memberStatus" checked>
+                                                <label class="form-check-label" for="memberStatus">
+                                                    عضو نشط (يدخل في تقسيم الرواتب)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary"><i class="bi bi-save-fill me-1"></i>حفظ البيانات</button>
+                                     <button type="button" class="btn btn-secondary" id="cancel-member-edit-btn" style="display: none;"><i class="bi bi-x-lg me-1"></i>إلغاء التعديل</button>
+                                </form>
+                            </div>
+                            <!-- ايداعات الأعضاء -->
+                            <div class="tab-pane fade" id="deposit-content" role="tabpanel" aria-labelledby="deposit-subtab">
+                                <h3>تسجيل إيداع (حوالة)</h3>
+                                <form id="transaction-form">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositMemberId" class="form-label">العضو</label>
+                                            <select class="form-select" id="depositMemberId" name="memberId" required>
+                                                <option value="">اختر العضو...</option>
+                                                <!-- Populated by JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositAmount" class="form-label">المبلغ</label>
+                                            <input type="number" step="0.01" class="form-control" id="depositAmount" name="amount" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositTransferDate" class="form-label">تاريخ الإيداع</label>
+                                            <input type="date" class="form-control" id="depositTransferDate" name="transferDate" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositBank" class="form-label">البنك</label>
+                                            <input type="text" class="form-control" id="depositBank" name="bank">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositTransferMethod" class="form-label">طريقة الإيداع</label>
+                                            <input type="text" class="form-control" id="depositTransferMethod" name="transferMethod">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="depositNotes" class="form-label">ملاحظات</label>
+                                            <textarea class="form-control" id="depositNotes" name="notes" rows="1"></textarea>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-plus-circle-fill me-1"></i>تسجيل الإيداع</button>
+                                </form>
+                            </div>
+                             <!-- مصروفات الأعضاء -->
+                            <div class="tab-pane fade" id="member-expense-content" role="tabpanel" aria-labelledby="member-expense-subtab">
+                                <h3>تسجيل مصروف خاص بالعضو</h3>
+                                <form id="member-expense-form">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label for="memberExpenseMemberId" class="form-label">العضو</label>
+                                            <select class="form-select" id="memberExpenseMemberId" name="memberId" required>
+                                                <option value="">اختر العضو...</option>
+                                                <!-- Populated by JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="memberExpenseDate" class="form-label">التاريخ</label>
+                                            <input type="date" class="form-control" id="memberExpenseDate" name="date" required>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="memberExpenseAmount" class="form-label">المبلغ</label>
+                                            <input type="number" step="0.01" class="form-control" id="memberExpenseAmount" name="amount" required>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="memberExpenseDescription" class="form-label">الوصف</label>
+                                            <input type="text" class="form-control" id="memberExpenseDescription" name="description" required>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label for="memberExpenseNotes" class="form-label">ملاحظات</label>
+                                            <textarea class="form-control" id="memberExpenseNotes" name="notes" rows="1"></textarea>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning"><i class="bi bi-dash-circle-fill me-1"></i>تسجيل مصروف العضو</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المصروفات العامة -->
+            <div class="tab-pane fade" id="expenses" role="tabpanel" aria-labelledby="expenses-tab">
+                 <div class="card mb-4">
+                    <div class="card-header">
+                        <h3><i class="bi bi-cart-dash-fill me-2"></i>تسجيل مصروف عام</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="expense-form">
+                             <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="expense-date" class="form-label">التاريخ</label>
+                                    <input type="date" class="form-control" id="expense-date" name="date" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="expense-type" class="form-label">نوع المصروف</label>
+                                    <input type="text" class="form-control" id="expense-type" name="type" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="expense-amount" class="form-label">المبلغ</label>
+                                    <input type="number" step="0.01" class="form-control" id="expense-amount" name="amount" required>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label for="expense-notes" class="form-label">ملاحظات</label>
+                                    <textarea class="form-control" id="expense-notes" name="notes" rows="2"></textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save-fill me-1"></i>تسجيل المصروف</button>
+                        </form>
+                    </div>
+                </div>
+                 <div class="card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-list-ul me-2"></i>قائمة المصروفات</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>النوع</th>
+                                        <th class="arabic-numbers">المبلغ</th>
+                                        <th>ملاحظات</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenses-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التقارير -->
+            <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-pills card-header-pills" id="reports-sub-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="financial-summary-subtab" data-bs-toggle="pill" data-bs-target="#financial-summary-content" type="button" role="tab" aria-controls="financial-summary-content" aria-selected="true">
+                                    <i class="bi bi-graph-up-arrow me-1"></i>الملخص المالي
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="deposits-report-subtab" data-bs-toggle="pill" data-bs-target="#deposits-report-content" type="button" role="tab" aria-controls="deposits-report-content" aria-selected="false">
+                                    <i class="bi bi-cash-stack me-1"></i>تقرير الإيداعات
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="expenses-report-subtab" data-bs-toggle="pill" data-bs-target="#expenses-report-content" type="button" role="tab" aria-controls="expenses-report-content" aria-selected="false">
+                                    <i class="bi bi-receipt me-1"></i>تقرير المصروفات
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="salaries-report-subtab" data-bs-toggle="pill" data-bs-target="#salaries-report-content" type="button" role="tab" aria-controls="salaries-report-content" aria-selected="false">
+                                    <i class="bi bi-cash-coin me-1"></i>تقرير الرواتب
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="members-status-subtab" data-bs-toggle="pill" data-bs-target="#members-status-content" type="button" role="tab" aria-controls="members-status-content" aria-selected="false">
+                                    <i class="bi bi-people-fill me-1"></i>حالة الأعضاء
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="reports-sub-tabsContent">
+                            <!-- الملخص المالي -->
+                            <div class="tab-pane fade show active" id="financial-summary-content" role="tabpanel" aria-labelledby="financial-summary-subtab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>الملخص المالي</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="print-financial-summary">
+                                            <i class="bi bi-printer-fill me-1"></i>طباعة
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="export-financial-summary">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>تصدير Excel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>ملخص العام الحالي</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="yearly-summary-chart" style="height: 300px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-header bg-success text-white">
+                                                <h5 class="mb-0"><i class="bi bi-calendar-month me-2"></i>ملخص الشهر الحالي</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="monthly-summary-chart" style="height: 300px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>تحليل الإيرادات والمصروفات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>الشهر</th>
+                                                        <th class="arabic-numbers">الإيرادات</th>
+                                                        <th class="arabic-numbers">المصروفات العامة</th>
+                                                        <th class="arabic-numbers">مصروفات الرواتب</th>
+                                                        <th class="arabic-numbers">المصروفات الخاصة</th>
+                                                        <th class="arabic-numbers">الرصيد الشهري</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="monthly-financial-summary">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- تقرير الإيداعات -->
+                            <div class="tab-pane fade" id="deposits-report-content" role="tabpanel" aria-labelledby="deposits-report-subtab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0"><i class="bi bi-cash-stack me-2"></i>تقرير الإيداعات</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="print-deposits-report">
+                                            <i class="bi bi-printer-fill me-1"></i>طباعة
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="export-deposits-report">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>تصدير Excel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>تصفية البيانات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3 mb-2">
+                                                <label for="deposits-date-from" class="form-label">من تاريخ</label>
+                                                <input type="date" class="form-control form-control-sm" id="deposits-date-from">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="deposits-date-to" class="form-label">إلى تاريخ</label>
+                                                <input type="date" class="form-control form-control-sm" id="deposits-date-to">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="deposits-member-filter" class="form-label">العضو</label>
+                                                <select class="form-select form-select-sm" id="deposits-member-filter">
+                                                    <option value="">جميع الأعضاء</option>
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="deposits-bank-filter" class="form-label">البنك</label>
+                                                <select class="form-select form-select-sm" id="deposits-bank-filter">
+                                                    <option value="">جميع البنوك</option>
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </select>
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="apply-deposits-filter">
+                                                    <i class="bi bi-funnel-fill me-1"></i>تطبيق التصفية
+                                                </button>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="reset-deposits-filter">
+                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>إعادة تعيين
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>قائمة الإيداعات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>التاريخ</th>
+                                                        <th>العضو</th>
+                                                        <th>البنك</th>
+                                                        <th>طريقة الإيداع</th>
+                                                        <th class="arabic-numbers">المبلغ</th>
+                                                        <th>ملاحظات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="deposits-report-list">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="table-primary fw-bold">
+                                                        <td colspan="4" class="text-start">الإجمالي</td>
+                                                        <td class="arabic-numbers" id="deposits-total">0</td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- تقرير المصروفات -->
+                            <div class="tab-pane fade" id="expenses-report-content" role="tabpanel" aria-labelledby="expenses-report-subtab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0"><i class="bi bi-receipt me-2"></i>تقرير المصروفات</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="print-expenses-report">
+                                            <i class="bi bi-printer-fill me-1"></i>طباعة
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="export-expenses-report">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>تصدير Excel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header bg-danger text-white">
+                                        <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>تصفية البيانات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3 mb-2">
+                                                <label for="expenses-date-from" class="form-label">من تاريخ</label>
+                                                <input type="date" class="form-control form-control-sm" id="expenses-date-from">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="expenses-date-to" class="form-label">إلى تاريخ</label>
+                                                <input type="date" class="form-control form-control-sm" id="expenses-date-to">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="expenses-type-filter" class="form-label">نوع المصروف</label>
+                                                <select class="form-select form-select-sm" id="expenses-type-filter">
+                                                    <option value="">جميع الأنواع</option>
+                                                    <option value="راتب">رواتب</option>
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label for="expenses-category-filter" class="form-label">الفئة</label>
+                                                <select class="form-select form-select-sm" id="expenses-category-filter">
+                                                    <option value="">جميع الفئات</option>
+                                                    <option value="general">مصروفات عامة</option>
+                                                    <option value="salary">مصروفات رواتب</option>
+                                                    <option value="member">مصروفات خاصة</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="apply-expenses-filter">
+                                                    <i class="bi bi-funnel-fill me-1"></i>تطبيق التصفية
+                                                </button>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="reset-expenses-filter">
+                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>إعادة تعيين
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>قائمة المصروفات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>التاريخ</th>
+                                                        <th>النوع</th>
+                                                        <th>الفئة</th>
+                                                        <th class="arabic-numbers">المبلغ</th>
+                                                        <th>ملاحظات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="expenses-report-list">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="table-danger fw-bold">
+                                                        <td colspan="3" class="text-start">الإجمالي</td>
+                                                        <td class="arabic-numbers" id="expenses-total">0</td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- تقرير الرواتب -->
+                            <div class="tab-pane fade" id="salaries-report-content" role="tabpanel" aria-labelledby="salaries-report-subtab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0"><i class="bi bi-cash-coin me-2"></i>تقرير الرواتب</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="print-salaries-report">
+                                            <i class="bi bi-printer-fill me-1"></i>طباعة
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="export-salaries-report">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>تصدير Excel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>تصفية البيانات</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <label for="salaries-year-filter" class="form-label">السنة</label>
+                                                <select class="form-select form-select-sm" id="salaries-year-filter">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label for="salaries-month-filter" class="form-label">الشهر</label>
+                                                <select class="form-select form-select-sm" id="salaries-month-filter">
+                                                    <option value="">جميع الشهور</option>
+                                                    <option value="1">يناير</option>
+                                                    <option value="2">فبراير</option>
+                                                    <option value="3">مارس</option>
+                                                    <option value="4">أبريل</option>
+                                                    <option value="5">مايو</option>
+                                                    <option value="6">يونيو</option>
+                                                    <option value="7">يوليو</option>
+                                                    <option value="8">أغسطس</option>
+                                                    <option value="9">سبتمبر</option>
+                                                    <option value="10">أكتوبر</option>
+                                                    <option value="11">نوفمبر</option>
+                                                    <option value="12">ديسمبر</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label for="salaries-employee-filter" class="form-label">العامل</label>
+                                                <select class="form-select form-select-sm" id="salaries-employee-filter">
+                                                    <option value="">جميع العمال</option>
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </select>
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="apply-salaries-filter">
+                                                    <i class="bi bi-funnel-fill me-1"></i>تطبيق التصفية
+                                                </button>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="reset-salaries-filter">
+                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>إعادة تعيين
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>سجل الرواتب</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>العامل</th>
+                                                        <th>الشهر</th>
+                                                        <th>السنة</th>
+                                                        <th class="arabic-numbers">المبلغ</th>
+                                                        <th>حالة الدفع</th>
+                                                        <th>تاريخ الدفع</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="salaries-report-list">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="table-info fw-bold">
+                                                        <td colspan="3" class="text-start">الإجمالي</td>
+                                                        <td class="arabic-numbers" id="salaries-total">0</td>
+                                                        <td colspan="2"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- حالة الأعضاء -->
+                            <div class="tab-pane fade" id="members-status-content" role="tabpanel" aria-labelledby="members-status-subtab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="mb-0"><i class="bi bi-people-fill me-2"></i>حالة الأعضاء</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="print-members-status">
+                                            <i class="bi bi-printer-fill me-1"></i>طباعة
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="export-members-status">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>تصدير Excel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>توزيع حالة الأعضاء</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="members-status-chart" style="height: 300px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm mb-3">
+                                            <div class="card-header bg-success text-white">
+                                                <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>توزيع الأرصدة</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="members-balance-chart" style="height: 300px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>قائمة الأعضاء</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>اسم العضو</th>
+                                                        <th class="arabic-numbers">الاشتراك الشهري</th>
+                                                        <th class="arabic-numbers">إجمالي الإيداعات</th>
+                                                        <th class="arabic-numbers">إجمالي المصروفات</th>
+                                                        <th class="arabic-numbers">الرصيد الحالي</th>
+                                                        <th>الحالة</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="members-status-list">
+                                                    <!-- سيتم ملؤها بواسطة JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- نهاية tab-content -->
+
+    </div> <!-- نهاية container-fluid -->
+
+    <!-- شريط التذييل (Footer) -->
+    <footer class="footer mt-4 py-2 bg-dark text-white text-center">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-center align-items-center">
+                <span class="copyright-text">
+                    <i class="bi bi-c-circle me-1"></i> جميع الحقوق محفوظة للأستاذ / ناصر مسعود آل مستنير
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal لعرض تفاصيل العامل -->
+    <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-labelledby="employeeDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="employeeDetailsModalLabel"><i class="bi bi-person-lines-fill me-2"></i>تفاصيل العامل</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="employeeDetailsModalBody" style="font-size: 0.95rem;">
+            <p class="text-center">جاري تحميل التفاصيل...</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal لعرض تفاصيل العضو -->
+    <div class="modal fade" id="memberDetailsModal" tabindex="-1" aria-labelledby="memberDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="memberDetailsModalLabel"><i class="bi bi-person-vcard-fill me-2"></i>تفاصيل العضو</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="memberDetailsModalBody">
+            <p class="text-center">جاري تحميل التفاصيل...</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- تضمين ملفات JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment-hijri@2.1.2/moment-hijri.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
